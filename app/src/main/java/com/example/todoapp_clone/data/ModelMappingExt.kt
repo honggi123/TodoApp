@@ -12,6 +12,8 @@ fun Task.toLocal() = LocalTask(
     isCompleted = isCompleted,
 )
 
+fun List<Task>.toLocal() = map(Task::toLocal)
+
 // Local to External
 fun LocalTask.toExternal() = Task(
     id = id,
@@ -19,3 +21,6 @@ fun LocalTask.toExternal() = Task(
     description = description,
     isCompleted = isCompleted,
 )
+
+@JvmName("localToExternal")
+fun List<LocalTask>.toExternal() = map(LocalTask::toExternal)
