@@ -8,9 +8,3 @@ import com.example.todoapp_clone.data.Task
 abstract class ToDoDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
 }
-
-@Database(entities = [LocalTask::class], version = 1, exportSchema = false)
-abstract class ToDoDatabase : RoomDatabase() {
-
-    abstract fun taskDao(): TaskDao
-}
