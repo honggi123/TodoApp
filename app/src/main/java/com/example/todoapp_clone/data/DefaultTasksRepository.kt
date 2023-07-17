@@ -20,6 +20,15 @@ class DefaultTasksRepository @Inject constructor(
     @DefaultDispatcher private val dispatcher: CoroutineDispatcher,
     @ApplicationScope private val scope: CoroutineScope,
 ) : TaskRepository {
+
+    override fun getTaskStream(taskId: String): Flow<Task?> {
+        return localDataSource.observeById(taskId).map { it.toExternal() }
+    }
+
+    override suspend fun refreshTask(taskId: String) {
+        refresh()
+    }
+
     override fun getTasksStream(): Flow<List<Task>> {
         return localDataSource.observeAll().map { tasks ->
             tasks.toExternal()
@@ -41,6 +50,11 @@ class DefaultTasksRepository @Inject constructor(
 
     override suspend fun activateTask(taskId: String) {
         localDataSource.updateCompleted(taskId = taskId, completed = false)
+        saveTasksToNetwork()
+    }
+
+    override suspend fun deleteTask(taskId: String) {
+        localDataSource.deleteById(taskId)
         saveTasksToNetwork()
     }
 
