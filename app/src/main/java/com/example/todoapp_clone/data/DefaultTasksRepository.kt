@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,6 +21,20 @@ class DefaultTasksRepository @Inject constructor(
     @DefaultDispatcher private val dispatcher: CoroutineDispatcher,
     @ApplicationScope private val scope: CoroutineScope,
 ) : TaskRepository {
+
+    override suspend fun createTask(title: String, description: String): String {
+        var taskId = withContext(dispatcher) {
+            UUID.randomUUID().toString()
+        }
+        val task = Task(
+            title = title,
+            description = description,
+            id = taskId
+        )
+        localDataSource.upsert(task.toLocal())
+        saveTasksToNetwork()
+        return taskId
+    }
 
     override fun getTaskStream(taskId: String): Flow<Task?> {
         return localDataSource.observeById(taskId).map { it.toExternal() }
@@ -35,6 +50,13 @@ class DefaultTasksRepository @Inject constructor(
         }
     }
 
+    override suspend fun getTask(taskId: String, forceUpdate: Boolean): Task? {
+        if (forceUpdate) {
+            refresh()
+        }
+        return localDataSource.getById(taskId)?.toExternal()
+    }
+
     override suspend fun refresh() {
         withContext(dispatcher) {
             val remoteTasks = networkDataSource.loadTasks()
@@ -45,6 +67,16 @@ class DefaultTasksRepository @Inject constructor(
 
     override suspend fun completeTask(taskId: String) {
         localDataSource.updateCompleted(taskId = taskId, completed = true)
+        saveTasksToNetwork()
+    }
+
+    override suspend fun updateTask(taskId: String, title: String, description: String) {
+        val task = getTask(taskId)?.copy(
+            title = title,
+            description = description
+        ) ?: throw Exception("Task (id $taskId) not found")
+
+        localDataSource.upsert(task.toLocal())
         saveTasksToNetwork()
     }
 
